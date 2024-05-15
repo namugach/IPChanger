@@ -1,13 +1,24 @@
 import re
 import os
 
-# 변경할 파일 경로들
-batch_file_path = '~/join.bat'
-ssh_config_path = '~/.ssh/config'
+# 파일 경로들을 읽어오는 함수
+def read_file_list(file_list_path):
+	if not os.path.exists(file_list_path):
+		print(f'{file_list_path} 파일이 존재하지 않아. 파일을 생성할게.')
+		with open(file_list_path, 'w') as file:
+			pass
+		print(f'{file_list_path} 파일이 생성됐어. 파일 경로를 추가해줘.')
+		return []
 
-# 파일 경로에서 ~를 절대 경로로 변경
-batch_file_path = os.path.expanduser(batch_file_path)
-ssh_config_path = os.path.expanduser(ssh_config_path)
+	try:
+		with open(file_list_path, 'r') as file:
+			file_paths = [line.strip() for line in file]
+		if not file_paths:
+			print(f'{file_list_path} 파일이 비어 있어. 파일 경로를 추가해줘.')
+		return file_paths
+	except FileNotFoundError:
+		print(f'{file_list_path} 파일이 존재하지 않아.')
+		return []
 
 def find_old_ip_in_file(file_path):
 	# 파일 읽기
@@ -40,24 +51,26 @@ def update_ip_in_file(file_path, old_ip, new_ip):
 	with open(file_path, 'w') as file:
 			file.write(new_content)
 
+file_paths = read_file_list("file_list")
+
+if not file_paths:
+	exit()
+
 # 사용자로부터 새로운 IP 입력 받기
 while True:
-	new_ip = input('새로운 IP 주소를 입력하세요: ')
+	new_ip = input('새로운 IP 주소를 입력해봐: ')
 	if is_valid_ip(new_ip):
 			break
 	else:
-			print('유효하지 않은 IP 주소입니다. 다시 입력해주세요.')
+			print('이상한 IP 주소야. 다시 입력해봐.')
 
 # 각 파일에서 예전 IP 주소 찾기
 try:
-	old_ip_batch = find_old_ip_in_file(batch_file_path)
-	old_ip_ssh = find_old_ip_in_file(ssh_config_path)
-
-	# 파일 업데이트
-	update_ip_in_file(batch_file_path, old_ip_batch, new_ip)
-	update_ip_in_file(ssh_config_path, old_ip_ssh, new_ip)
-
-	print(f'IP 주소를 {old_ip_batch}에서 {new_ip}로 변경했어.')
+	for file_path in file_paths:
+		full_path = os.path.expanduser(file_path)
+		old_ip = find_old_ip_in_file(full_path)
+		update_ip_in_file(full_path, old_ip, new_ip)
+		print(f'{file_path} 파일의 IP 주소를 {old_ip}에서 {new_ip}로 변경했어.')
 
 except ValueError as e:
 	print(e)
